@@ -1,22 +1,24 @@
 module Lib where
 
+import Brain
+import Conduit
+import Conduits.VK
+import Control.Concurrent.Chan
+import Data.Optional
 import VK.API
-import VK.ResponseTypes
 import VK.API.Messages
 import VK.Longpoll
-import Data.Optional
-import Conduits.VK
-import Conduit
-import Control.Concurrent.Chan
-import Brain
+import VK.ResponseTypes
 
 botLoop :: ConduitChannel -> IO ()
-botLoop chan = do (event, pushback) <- readChan chan
-                  response <- processRequest event
-                  writeChan pushback response
-                  botLoop chan
+botLoop chan = do
+  (event, pushback) <- readChan chan
+  response <- processRequest event
+  writeChan pushback response
+  botLoop chan
 
 startBot :: [ConduitInstance] -> IO ()
-startBot instances = do chan <- startConduits instances
-                        botLoop chan
-                        return ()
+startBot instances = do
+  chan <- startConduits instances
+  botLoop chan
+  return ()

@@ -159,4 +159,5 @@ getLongpollHistory :: APIOwner -> LpHistoryParams -> IO (APIResponse LpHistoryRe
 getLongpollHistory owner params = apiRequest owner "messages.getLongPollHistory" params
 
 send :: APIOwner -> Int -> String -> IO (APIResponse Int)
-send owner peerId text = apiRequest owner "messages.send" ([("peer_id", show peerId), ("message", text)] :: [(String, String)])
+send owner peerId text =
+  apiRequest owner "messages.send" ([("peer_id", show peerId), ("message", text)] :: [(String, String)])

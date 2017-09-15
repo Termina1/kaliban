@@ -1,6 +1,6 @@
 module Brain
-( processRequest
-) where
+  ( processRequest
+  ) where
 
 import Conduit
 
