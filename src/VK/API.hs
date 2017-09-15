@@ -12,10 +12,10 @@ import VK.ResponseTypes
 apiUrl :: String
 apiUrl = "https://api.vk.com/"
 
-data APIOwner = APIOwnerÍ
+data APIOwner = APIOwner
   { accessToken :: String
-  , ownerId     :: Int
-  , version     :: (Int, Int)
+  , ownerId :: Int
+  , version :: (Int, Int)
   }
 
 apiRequest :: (FromJSON a, Paramable b) => APIOwner -> String -> b -> IO (APIResponse a)
@@ -23,7 +23,7 @@ apiRequest owner method params =
   (httpLBS $ fromString $ getRequestUrl owner method (toParams params)) >>= \res -> do
     let resp = getResponseBody res
     case eitherDecode resp of
-      Left err  -> return $ APIRequestError err
+      Left err -> return $ APIRequestError err
       Right obj -> return obj
   where
     ownerToParams :: APIOwner -> [(String, String)]

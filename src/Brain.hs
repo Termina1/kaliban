@@ -2,5 +2,7 @@ module Brain
 ( processRequest
 ) where
 
-processRequest :: IO ()
-processRequest = _
+import Conduit
+
+processRequest :: ConduitEvent -> IO ConduitResponse
+processRequest _ = return ConduitResponseUnknown

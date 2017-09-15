@@ -1,5 +1,4 @@
-{-# LANGUAGE GADTs, StandaloneDeriving, OverloadedStrings,
-  StandaloneDeriving #-}
+{-# LANGUAGE GADTs, OverloadedStrings, StandaloneDeriving #-}
 
 module VK.Longpoll
   ( makeLongpollRequest

@@ -1,17 +1,18 @@
-{-# LANGUAGE ExistentialQuantification, FlexibleInstances, GADTs, OverloadedStrings, StandaloneDeriving #-}
+{-# LANGUAGE ExistentialQuantification, FlexibleInstances, GADTs,
+  OverloadedStrings, StandaloneDeriving #-}
 
 module VK.ResponseTypes where
 
-import           Control.Applicative
-import           Data.Aeson
+import Control.Applicative
+import Data.Aeson
 import qualified Data.HashMap.Strict as HM
-import           Data.List
-import           Data.Optional
+import Data.List
+import Data.Optional
 import qualified Data.Vector as V
 
 toInt :: Optional Int -> Int
 toInt (Specific i) = i
-toInt Default      = 0
+toInt Default = 0
 
 toList :: Show a => [a] -> String
 toList ls = intercalate "," $ map show ls
@@ -26,13 +27,17 @@ data APIResponse a where
 
 deriving instance Show a => Show (APIResponse a)
 
+infixl 4 .:!?
+
+(.:!?) o name = o .:? name .!= Default
+
 instance FromJSON a => FromJSON (APIResponse a) where
   parseJSON =
     withObject "result" $ \obj ->
       case (HM.lookup "error" obj) of
         Nothing ->
           case (HM.lookup "response" obj) of
-            Nothing   -> fail $ "Invalid API response" ++ (show obj)
+            Nothing -> fail $ "Invalid API response" ++ (show obj)
             Just resp -> fmap APIResult (parseJSON resp)
         Just errParams ->
           withObject
