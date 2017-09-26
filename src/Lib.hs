@@ -4,17 +4,18 @@ import Brain
 import Conduit
 import Conduits.VK
 import Control.Concurrent.Chan
+import Control.Concurrent (forkIO)
 import Data.Optional
-import VK.API
 import VK.API.Messages
+import VK.API
 import VK.Longpoll
 import VK.ResponseTypes
 
 botLoop :: ConduitChannel -> IO ()
 botLoop chan = do
   (event, pushback) <- readChan chan
-  response <- processRequest event
-  writeChan pushback response
+  forkIO (do response <- processRequest testCells event
+             writeChan pushback response)
   botLoop chan
 
 startBot :: [ConduitInstance] -> IO ()

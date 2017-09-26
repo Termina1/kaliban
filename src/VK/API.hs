@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module VK.API where
+module VK.API (apiRequest, APIOwner(..)) where
 
 import Data.Aeson (FromJSON, eitherDecode)
 import Data.String

@@ -14,6 +14,7 @@ data ConduitEvent where
     -> ConduitEvent
 
 data ConduitResponse where
+  ConduitResponseMessages :: String -> ConduitResponse
   ConduitResponseUnknown :: ConduitResponse
 
 deriving instance Show ConduitEvent

@@ -1,12 +1,13 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Conduits.VK where
+module Conduits.VK
+  ( VKConduit(..)
+  , initConduit
+  ) where
 
 import Conduit
 import Control.Concurrent
-import Control.Concurrent.Chan
 import Data.List
-import Data.Optional
 import Data.Optional
 import VK.API
 import VK.API.Messages
@@ -51,7 +52,7 @@ forwardsToText profiles fwds = intercalate "\n" $ map (forwardsToTextHelper prof
 toEvent :: Message -> [Profile] -> ConduitEvent
 toEvent msg profiles =
   case (forwardedMesages msg) of
-    Default -> ConduitEventIdle
+    Default -> ConduitEventCommand (getMText msg) ""
     Specific fwd -> ConduitEventCommand (getMText msg) (forwardsToText profiles fwd)
 
 processLpResponse :: ConduitChannel -> LpHistoryResult -> APIOwner -> IO ()
@@ -84,9 +85,12 @@ processResponse :: ConduitResponse -> APIOwner -> Int -> IO ()
 processResponse resp owner peerId =
   case resp of
     ConduitResponseUnknown -> do
-      result <- send owner peerId "Чел, я не знаю"
-      putStrLn (show result)
+      send owner peerId "Чел, я не знаю"
       return ()
+    ConduitResponseMessages message -> do
+      send owner peerId message
+      return ()
+
 
 listenResponse :: Int -> Chan ConduitResponse -> APIOwner -> IO ()
 listenResponse peerId chan owner = do
