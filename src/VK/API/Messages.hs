@@ -8,6 +8,7 @@ import Data.List
 import Data.Optional
 import VK.API
 import VK.ResponseTypes
+import Util
 
 data ForwardedMessage = ForwardedMessage
   { fromId :: Int
@@ -24,8 +25,8 @@ instance FromJSON ForwardedMessage where
     withObject "fwd_message" $ \o -> do
       fromId <- o .: "from_id"
       date <- o .: "date"
-      text <- o .: "text"
-      forwarded <- o .:? "fwd_messages" .!= Default
+      text <- o .:!? "text"
+      forwarded <- o .:!? "fwd_messages"
       return ForwardedMessage {..}
 
 data Message = Message

@@ -34,7 +34,9 @@ processCommand cells (AICommand (IntentTaskParams time date) response AIActionTa
   case result of
     Left err -> return $ ConduitResponseMessages ("Ошибка: " ++ err)
     Right resp -> return $ ConduitResponseMessages response
-processCommand _ _ _ = return $ ConduitResponseMessages "Чел, не знаю че как"
+processCommand cells (AICommand params response action) meta = return $ ConduitResponseMessages response
+processCommand _ (AICommandError code error) _ = return $ 
+  ConduitResponseMessages $ "Не смог понять: " ++ error ++ " (код: " ++ (show code) ++ ")"
 
 processRequest :: BrainCells -> ConduitEvent -> IO ConduitResponse
 processRequest cells (ConduitEventCommand text meta) = do

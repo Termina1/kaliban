@@ -1,21 +1,30 @@
 name:                kaliban
 version:             0.1.0.0
--- synopsis:
--- description:
-homepage:            https://github.com/githubuser/kaliban#readme
+homepage:            https://github.com/Termina1/kaliban
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2017 Author name here
+author:              Termina1
+maintainer:          terminal2010@gmail.com
+copyright:           2017 Termina1
 category:            Web
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
-library
-  hs-source-dirs:      src
-  exposed-modules:     Lib, Vk
+executable kaliban-exe
+  hs-source-dirs:      app, src
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Brain
+                     , Brains.AI
+                     , Brains.Trello
+                     , Conduit
+                     , Conduits.VK
+                     , VK.API
+                     , VK.API.Messages
+                     , VK.ResponseTypes
+                     , Util
+
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , scientific
@@ -27,27 +36,6 @@ library
                      , optional-args
                      , time
                      , singletons
-                     , iso8601-time
-
-  default-language:    Haskell2010
-
-executable kaliban-exe
-  hs-source-dirs:      app
-  main-is:             Main.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
-                     , kaliban
-                     , warp
-                     , wai
-                     , http-types
-                     , aeson
-                     , scientific
-                     , unordered-containers
-                     , vector
-                     , utf8-string
-                     , http-conduit
-                     , url
-                     , optional-args
                      , iso8601-time
   default-language:    Haskell2010
 
@@ -62,4 +50,4 @@ test-suite kaliban-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/kaliban
+  location: https://github.com/Termina1/kaliban

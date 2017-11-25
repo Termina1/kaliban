@@ -9,6 +9,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.List
 import Data.Optional
 import qualified Data.Vector as V
+import Util
 
 toInt :: Optional Int -> Int
 toInt (Specific i) = i
@@ -27,10 +28,6 @@ data APIResponse a where
 
 deriving instance Show a => Show (APIResponse a)
 
-infixl 4 .:!?
-
-(.:!?) o name = o .:? name .!= Default
-
 instance FromJSON a => FromJSON (APIResponse a) where
   parseJSON =
     withObject "result" $ \obj ->
@@ -47,9 +44,6 @@ instance FromJSON a => FromJSON (APIResponse a) where
                msg <- errObject .: "error_msg"
                return (APIError code msg))
             errParams
-
-instance FromJSON a => FromJSON (Optional a) where
-  parseJSON val = (fmap Specific (parseJSON val)) <|> return Default
 
 data WithCount a where
   WithCount

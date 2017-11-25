@@ -10,6 +10,7 @@ import           Data.String
 import           Data.Time
 import           Network.HTTP.Simple
 import           Network.URL
+import Util
 
 baseUrl :: String
 baseUrl = "https://api.api.ai/api/"
@@ -36,7 +37,7 @@ instance FromJSON AIAction where
   parseJSON (String "create_task")   = return AIActionTask
   parseJSON (String "send_chart")    = return AIActionChart
   parseJSON (String "input.unknown") = return AIActionUnknown
-  parseJSON act                      = fail $ "Unknown action: " ++ (show act)
+  parseJSON act                      = return AIActionUnknown
 
 data AIIntentParams where
   IntentTaskParams :: {
@@ -90,21 +91,23 @@ instance FromJSON AIResult where
 
 data AIStatus = AIStatus {
   code      :: Int,
-  errorType :: String
+  errorType :: String,
+  errorDetails :: Optional String
 } deriving (Show)
 
 instance FromJSON AIStatus where
   parseJSON = withObject "status" $ \o -> do
     code <- o .: "code"
     errorType <- o .: "errorType"
+    errorDetails <- o .:!? "errorDetails"
     return AIStatus{..}
 
 data AIResponse = AIResponse {
   id        :: String,
   timestamp :: UTCTime,
-  result    :: AIResult,
+  result    :: Maybe AIResult,
   status    :: AIStatus,
-  sessionId :: String
+  sessionId :: Maybe String
 } deriving (Show)
 
 instance FromJSON AIResponse where
@@ -112,15 +115,17 @@ instance FromJSON AIResponse where
     id <- o .: "id"
     timestamp <- o .: "timestamp"
     status <- o .: "status"
-    sessionId <- o .: "sessionId"
-    result <- o .: "result"
+    sessionId <- o .:? "sessionId"
+    result <- o .:? "result"
     return AIResponse{..}
 
-data AICommand = AICommand {
-  params     :: AIIntentParams,
-  response   :: String,
-  actionName :: AIAction
-} deriving (Show)
+data AICommand where
+  AICommand :: {
+    params     :: AIIntentParams,
+    response   :: String,
+    actionName :: AIAction
+  } -> AICommand
+  AICommandError :: Int -> String -> AICommand
 
 aiRequest :: APIOwner -> String -> String -> IO (Either String AIResponse)
 aiRequest owner text sessionId =
@@ -140,11 +145,14 @@ aiRequest owner text sessionId =
       baseUrl ++ "query" ++ "?" ++ (exportParams $ (ownerToParams owner) ++ [("query", query), ("sessionId", sessionId)])
 
 toCommand :: AIResponse -> AICommand
-toCommand resp = AICommand {
-  params = (parameters $ result resp),
-  response = (fulfillment $ result resp),
-  actionName = (action $ result resp)
-}
+toCommand resp = 
+  case (result resp) of
+    Nothing -> AICommandError (code $ status resp) $ (errorType $ status resp) ++ ": " ++ (defaultTo "" $ errorDetails $ status resp)
+    Just res -> AICommand {
+      params = (parameters res),
+      response = (fulfillment res),
+      actionName = (action res)
+    }
 
 askAI :: APIOwner -> String -> String -> IO (Either String AICommand)
 askAI owner text sessionId = do res <- aiRequest owner text sessionId
