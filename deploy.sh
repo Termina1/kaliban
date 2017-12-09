@@ -1,2 +1,2 @@
 #/bin/bash
-docker save kaliban-kaliban-exe | gzip | ssh core@$PROD_IP "cat | gzip -d -c | docker load && (docker stop kaliban || true); docker rm kaliban || true; docker run -d --restart=always --name kaliban kaliban-kaliban-exe"
+docker save kaliban-kaliban-exe | gzip | ssh core@$PROD_IP "cat | gzip -d -c | docker load && (docker stop kaliban || true); docker rm kaliban || true; docker run -d --restart=always --name kaliban -v /var/log/kaliban:/var/log/kaliban kaliban-kaliban-exe"
