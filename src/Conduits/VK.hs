@@ -77,16 +77,24 @@ processLpResponse chan result owner = do
 startPollingApi :: LogIO m => APIOwner -> Int -> ConduitChannel -> m ()
 startPollingApi owner pts chan = do
   result <- liftIO $ getLongpollHistory owner (getLpParams pts)
+  logAPIRequestError "messages.getLongpollHistory" result
   case result of
     APIError errorCode errorMessage -> do
-      logError $ fromString $ "error: " ++ (show errorCode) ++ " " ++ errorMessage
       doLater 3 (startPollingApi owner pts chan)
     APIRequestError message -> do
-      logError $ fromString $ "API error: " ++ (show message)
       doLater 1 (startPollingApi owner pts chan)
     APIResult response -> do
       processLpResponse chan response owner
       doLater 0.4 (startPollingApi owner (newPts response) chan)
+
+logAPIRequestError :: LogIO m => String -> APIResponse a -> m ()
+logAPIRequestError method resp =
+  case resp of
+    APIError errorCode errorMessage -> do
+      logError $ fromString $ method ++ " (API error): " ++ (show errorCode) ++ " " ++ errorMessage
+    APIRequestError message -> do
+      logError $ fromString $ method ++ " (server error): " ++ (show message)
+    _ -> return ()
 
 processResponse :: LogIO m => ConduitResponse -> APIOwner -> Int -> m ()
 processResponse resp owner peerId =
@@ -97,7 +105,8 @@ processResponse resp owner peerId =
       return ()
     ConduitResponseMessages message -> do
       logDebug $ fromString $ "Got response message: " ++ (message)
-      liftIO $ send owner peerId message
+      sendResponse <- liftIO $ send owner peerId message
+      logAPIRequestError "messages.send" sendResponse
       return ()
 
 
@@ -110,9 +119,12 @@ listenResponse peerId chan owner = do
 instance Conduit VKConduit where
   initConduit vkcond chan = do
     ptsResp <- liftIO $ getLongpollServer (owner vkcond) True 3
+    logAPIRequestError "messages.getLongpollServer" ptsResp
     logInfo "Init VK conduit"
     case ptsResp of
-      APIError errorCode errorMessage -> doLater 3 (initConduit vkcond chan)
-      APIRequestError message -> doLater 3 (initConduit vkcond chan)
+      APIError errorCode errorMessage -> do
+        doLater 3 (initConduit vkcond chan)
+      APIRequestError message -> do
+        doLater 3 (initConduit vkcond chan)
       APIResult response -> startPollingApi (owner vkcond) (defaultTo 0 (pts response)) chan
     return ()

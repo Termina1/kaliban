@@ -9,7 +9,6 @@ import Control.Monad.Log
 import Text.PrettyPrint.Leijen.Text
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Control
-import Control.Monad.Trans.Class
 
 instance FromJSON a => FromJSON (Optional a) where
   parseJSON val = (fmap Specific (parseJSON val)) <|> return Default
