@@ -1,10 +1,11 @@
-{-# LANGUAGE ExistentialQuantification, GADTs, StandaloneDeriving
+{-# LANGUAGE ExistentialQuantification, GADTs, StandaloneDeriving, FlexibleContexts
   #-}
 
 module Conduit where
 
-import Control.Concurrent (forkIO)
-import Control.Concurrent.Chan
+import Control.Concurrent.MonadIO (newChan, readChan, Chan, writeChan)
+import Util
+import Control.Concurrent.Async.Lifted
 
 data ConduitEvent where
   ConduitEventIdle :: ConduitEvent
@@ -22,22 +23,22 @@ deriving instance Show ConduitEvent
 type ConduitChannel = Chan (ConduitEvent, (Chan ConduitResponse))
 
 class Conduit a where
-  initConduit :: a -> ConduitChannel -> IO ()
+  initConduit :: LogIO m => a -> ConduitChannel -> m ()
 
 data ConduitInstance =
   forall a. Conduit a =>
             MkConduitInstance a
 
-initConduitInstance :: ConduitInstance -> IO (ConduitChannel)
+initConduitInstance :: LogIO m => ConduitInstance -> m (ConduitChannel)
 initConduitInstance (MkConduitInstance inst) = do
   chan <- newChan
-  forkIO $ initConduit inst chan
+  async $ initConduit inst chan
   return chan
 
-composeChannels :: [ConduitChannel] -> IO (ConduitChannel)
+composeChannels :: LogIO m => [ConduitChannel] -> m (ConduitChannel)
 composeChannels chans = do
   composedChan <- newChan
-  sequence (map (\chan -> forkIO (composeHelper composedChan chan)) chans)
+  sequence (map (\chan -> async (composeHelper composedChan chan)) chans)
   return composedChan
   where
     composeHelper chanc chan = do
@@ -45,7 +46,7 @@ composeChannels chans = do
       writeChan chanc val
       composeHelper chanc chan
 
-startConduits :: [ConduitInstance] -> IO ConduitChannel
+startConduits :: LogIO m => [ConduitInstance] -> m ConduitChannel
 startConduits conduits =
   let instances = map initConduitInstance conduits
   in sequence instances >>= composeChannels

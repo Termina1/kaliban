@@ -24,6 +24,7 @@ executable kaliban-exe
                      , VK.API.Messages
                      , VK.ResponseTypes
                      , Util
+                     , Start
 
   build-depends:       base >= 4.7 && < 5
                      , aeson
@@ -37,6 +38,13 @@ executable kaliban-exe
                      , time
                      , singletons
                      , iso8601-time
+                     , logging-effect
+                     , transformers
+                     , wl-pprint-text
+                     , async
+                     , lifted-async
+                     , monadIO
+                     , monad-control
   default-language:    Haskell2010
 
 test-suite kaliban-test

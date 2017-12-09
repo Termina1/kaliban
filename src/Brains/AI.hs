@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE GADTs, OverloadedStrings, RecordWildCards, StandaloneDeriving #-}
 
 module Brains.AI where
 
@@ -126,6 +126,8 @@ data AICommand where
     actionName :: AIAction
   } -> AICommand
   AICommandError :: Int -> String -> AICommand
+
+deriving instance Show AICommand
 
 aiRequest :: APIOwner -> String -> String -> IO (Either String AIResponse)
 aiRequest owner text sessionId =

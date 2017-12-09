@@ -2,14 +2,14 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-extra-deps:
+extra-deps: [monadIO-0.10.1.4]
 resolver: lts-9.1
 docker:
   # Set to false to disable using Docker.  In the project configuration,
   # the presence of a `docker:` section implies docker is enabled unless
   # `enable: false` is set.  In user and global configuration, this is not
   # the case.
-  enable: true
+  enable: false
 
   # The name of the repository to pull the image from.  See the "repositories"
   # section of this document for more information about available repositories.
