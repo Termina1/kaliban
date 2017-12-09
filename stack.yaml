@@ -9,7 +9,7 @@ docker:
   # the presence of a `docker:` section implies docker is enabled unless
   # `enable: false` is set.  In user and global configuration, this is not
   # the case.
-  enable: false
+  enable: true
 
   # The name of the repository to pull the image from.  See the "repositories"
   # section of this document for more information about available repositories.
@@ -80,7 +80,7 @@ docker:
   #   image: use the 'stack' executable baked into the image.  The version
   #     must match the host's version
   #   /path/to/stack: path on the host's local filesystem
-  stack-exe: download 
+  stack-exe: download
 
   # If true (the default when using the local Docker Engine), run processes
   # in the Docker container as the same UID/GID as the host.  The ensures
