@@ -68,7 +68,7 @@ processLpResponse chan result owner = do
     map
       (\msg -> do
          respchan <- newChan
-         logDebug $ fromString $ "Got message: " ++ (show msg)
+         logDebugT $ fromString $ "Got message: " ++ (show msg)
          async (listenResponse (VK.API.Messages.peerId msg) respchan owner)
          writeChan chan ((toEvent msg (defaultTo [] $ profiles result)), respchan))
       (filter (\mess -> (getFrom mess) /= (ownerId owner)) (items (messages result)))
@@ -91,20 +91,20 @@ logAPIRequestError :: LogIO m => String -> APIResponse a -> m ()
 logAPIRequestError method resp =
   case resp of
     APIError errorCode errorMessage -> do
-      logError $ fromString $ method ++ " (API error): " ++ (show errorCode) ++ " " ++ errorMessage
+      logErrorT $ fromString $ method ++ " (API error): " ++ (show errorCode) ++ " " ++ errorMessage
     APIRequestError message -> do
-      logError $ fromString $ method ++ " (server error): " ++ (show message)
+      logErrorT $ fromString $ method ++ " (server error): " ++ (show message)
     _ -> return ()
 
 processResponse :: LogIO m => ConduitResponse -> APIOwner -> Int -> m ()
 processResponse resp owner peerId =
   case resp of
     ConduitResponseUnknown -> do
-      logDebug "Got unknown response"
+      logDebugT "Got unknown response"
       liftIO $ send owner peerId "Чел, я не знаю"
       return ()
     ConduitResponseMessages message -> do
-      logDebug $ fromString $ "Got response message: " ++ (message)
+      logDebugT $ fromString $ "Got response message: " ++ (message)
       sendResponse <- liftIO $ send owner peerId message
       logAPIRequestError "messages.send" sendResponse
       return ()
@@ -112,7 +112,7 @@ processResponse resp owner peerId =
 
 listenResponse :: LogIO m => Int -> Chan ConduitResponse -> APIOwner -> m ()
 listenResponse peerId chan owner = do
-  logDebug "Start listen for response"
+  logDebugT "Start listen for response"
   resp <- readChan chan
   processResponse resp owner peerId
 
@@ -120,7 +120,7 @@ instance Conduit VKConduit where
   initConduit vkcond chan = do
     ptsResp <- liftIO $ getLongpollServer (owner vkcond) True 3
     logAPIRequestError "messages.getLongpollServer" ptsResp
-    logInfo "Init VK conduit"
+    logInfoT "Init VK conduit"
     case ptsResp of
       APIError errorCode errorMessage -> do
         doLater 3 (initConduit vkcond chan)
