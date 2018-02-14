@@ -47,7 +47,7 @@ data EventType =
   ForwardedAndText String [ForwardedMessage] |
   AudioMessage String |
   ForwardedAudioMessage String Int|
-  SimpleText |
+  SimpleText String |
   Unknown deriving (Show)
 
 forwardedToEvent :: String -> [ForwardedMessage] -> EventType
@@ -64,7 +64,7 @@ messageToEventType (Message _ _ _ _ _ _ _ (Specific [Attachment _ (DocC document
   case audio_msg (preview document) of
     Default       -> Unknown
     Specific prev -> AudioMessage $ link_ogg prev
-messageToEventType _ = Unknown
+messageToEventType (Message _ _ _ _ text _ _ _) = SimpleText text
 
 getName :: ForwardedMessage -> [Profile] -> String
 getName (ForwardedMessage fromId _ _ _ _) profiles =
@@ -97,7 +97,7 @@ toEvent :: Message -> [Profile] -> ConduitEvent
 toEvent msg profiles =
   case (messageToEventType msg) of
     Unknown                          -> ConduitEventIdle
-    SimpleText                       -> ConduitEventCommand (getMText msg) ""
+    SimpleText text                  -> ConduitEventCommand text ""
     ForwardedAndText msgText fwd     -> ConduitEventCommand msgText (forwardsToText profiles fwd)
     AudioMessage url                 -> ConduitEventAudio url "Ты сказал: "
     ForwardedAudioMessage url fromId -> ConduitEventAudio url (getPersonification fromId profiles)

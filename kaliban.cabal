@@ -26,6 +26,13 @@ executable kaliban-exe
                      , VK.ResponseTypes
                      , Util
                      , Start
+                     , Network.Google.Resource.Speech.Operations.Get
+                     , Network.Google.Resource.Speech.Speech.Longrunningrecognize
+                     , Network.Google.Resource.Speech.Speech.Recognize
+                     , Network.Google.Speech
+                     , Network.Google.Speech.Types
+                     , Network.Google.Speech.Types.Product
+                     , Network.Google.Speech.Types.Sum
 
   build-depends:       base >= 4.7 && < 5
                      , aeson
