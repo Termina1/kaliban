@@ -1,14 +1,14 @@
-{-# LANGUAGE ExistentialQuantification, GADTs, StandaloneDeriving, FlexibleContexts
-  #-}
+{-# LANGUAGE ExistentialQuantification, FlexibleContexts, GADTs, StandaloneDeriving #-}
 
 module Conduit where
 
-import Control.Concurrent.MonadIO (newChan, readChan, Chan, writeChan)
-import Util
 import Control.Concurrent.Async.Lifted
+import Control.Concurrent.MonadIO      (Chan, newChan, readChan, writeChan)
+import Util
 
 data ConduitEvent where
   ConduitEventIdle :: ConduitEvent
+  ConduitEventAudio :: String -> String -> ConduitEvent
   ConduitEventCommand
     :: { commandText :: String
        , commandMeta :: String}

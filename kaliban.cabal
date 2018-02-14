@@ -18,6 +18,7 @@ executable kaliban-exe
   other-modules:       Brain
                      , Brains.AI
                      , Brains.Trello
+                     , Brains.Speech
                      , Conduit
                      , Conduits.VK
                      , VK.API
@@ -45,6 +46,14 @@ executable kaliban-exe
                      , lifted-async
                      , monadIO
                      , monad-control
+                     , gogol-core == 0.3.0.*
+                     , gogol == 0.3.0.*
+                     , lens
+                     , resourcet
+                     , bytestring
+                     , base64-bytestring
+                     , http-conduit
+                     , text
   default-language:    Haskell2010
 
 test-suite kaliban-test

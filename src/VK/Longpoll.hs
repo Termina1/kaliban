@@ -13,12 +13,12 @@ import Network.HTTP.Conduit
 import VK.ResponseTypes
 
 data LongpollInstance = LongpollInstance
-  { key :: String
-  , ts :: Int
-  , server :: String
+  { key     :: String
+  , ts      :: Int
+  , server  :: String
   , version :: Int
-  , mode :: Int
-  , wait :: Int
+  , mode    :: Int
+  , wait    :: Int
   }
 
 longpollToUrl :: LongpollInstance -> String
@@ -40,7 +40,7 @@ makeLongpollRequest :: LongpollInstance -> IO (Either String LongpollResponse)
 makeLongpollRequest lp = do
   result <- simpleHttp $ longpollToUrl lp
   case lpEventFromStr result of
-    Left str -> return $ Left $ "invalid JSON: " ++ str
+    Left str   -> return $ Left $ "invalid JSON: " ++ str
     Right resp -> return $ Right resp
   where
     lpEventFromStr :: ByteString -> Either String LongpollResponse

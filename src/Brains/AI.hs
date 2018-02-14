@@ -10,7 +10,7 @@ import           Data.String
 import           Data.Time
 import           Network.HTTP.Simple
 import           Network.URL
-import Util
+import           Util
 
 baseUrl :: String
 baseUrl = "https://api.api.ai/api/"
@@ -90,8 +90,8 @@ instance FromJSON AIResult where
 
 
 data AIStatus = AIStatus {
-  code      :: Int,
-  errorType :: String,
+  code         :: Int,
+  errorType    :: String,
   errorDetails :: Optional String
 } deriving (Show)
 
@@ -147,7 +147,7 @@ aiRequest owner text sessionId =
       baseUrl ++ "query" ++ "?" ++ (exportParams $ (ownerToParams owner) ++ [("query", query), ("sessionId", sessionId)])
 
 toCommand :: AIResponse -> AICommand
-toCommand resp = 
+toCommand resp =
   case (result resp) of
     Nothing -> AICommandError (code $ status resp) $ (errorType $ status resp) ++ ": " ++ (defaultTo "" $ errorDetails $ status resp)
     Just res -> AICommand {

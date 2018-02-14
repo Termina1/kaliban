@@ -2,20 +2,20 @@
 
 module Brains.Trello where
 
-import Data.Aeson
+import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
-import Data.Optional
-import Data.String
-import Data.Time
-import Data.Time.ISO8601
-import Network.HTTP.Simple
-import Network.URL
+import           Data.Optional
+import           Data.String
+import           Data.Time
+import           Data.Time.ISO8601
+import           Network.HTTP.Simple
+import           Network.URL
 
 data APIOwner = APIOwner
   { trelloToken :: String
-  , trelloKey :: String
-  , boardId :: String
-  , listId :: String
+  , trelloKey   :: String
+  , boardId     :: String
+  , listId      :: String
   }
 
 data TrelloCard = TrelloCard
@@ -47,7 +47,7 @@ aiRequest owner method resource params =
      in httpLBS freq >>= \res -> do
           let resp = getResponseBody res
           case eitherDecode resp of
-            Left err -> return $ Left err
+            Left err  -> return $ Left err
             Right obj -> return $ Right obj
   where
     ownerToParams :: APIOwner -> [(String, String)]

@@ -1,4 +1,4 @@
-{-# LANGUAGE DuplicateRecordFields, FlexibleContexts, OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields, FlexibleContexts, GADTs, OverloadedStrings #-}
 
 module Conduits.VK
   ( VKConduit(..)
@@ -6,18 +6,18 @@ module Conduits.VK
   ) where
 
 import Conduit
+import Control.Concurrent              (threadDelay)
+import Control.Concurrent.Async.Lifted
+import Control.Concurrent.MonadIO      (Chan, newChan, readChan, writeChan)
+import Control.Monad.IO.Class
+import Control.Monad.Log
 import Data.List
 import Data.Optional
+import Data.String
+import Util
 import VK.API
 import VK.API.Messages
-import Control.Concurrent.Async.Lifted
 import VK.ResponseTypes
-import Control.Monad.IO.Class
-import Control.Concurrent (threadDelay)
-import Control.Concurrent.MonadIO (newChan, readChan, Chan, writeChan)
-import Control.Monad.Log
-import Util
-import Data.String
 
 doLater :: LogIO m => Double -> m () -> m ()
 doLater ms io = do
@@ -28,6 +28,7 @@ doLater ms io = do
 data VKConduit = VKConduit
   { owner :: APIOwner
   }
+
 
 getLpParams :: Int -> LpHistoryParams
 getLpParams pts =
@@ -42,12 +43,48 @@ getLpParams pts =
   , onlines = Default
   }
 
+data EventType =
+  ForwardedAndText String [ForwardedMessage] |
+  AudioMessage String |
+  ForwardedAudioMessage String Int|
+  SimpleText |
+  Unknown deriving (Show)
+
+forwardedToEvent :: String -> [ForwardedMessage] -> EventType
+forwardedToEvent "" [ForwardedMessage fromId _ _ _ (Specific [Attachment _ (DocC document)])] =
+  case audio_msg (preview document) of
+    Default       -> Unknown
+    Specific prev -> ForwardedAudioMessage (link_ogg prev) fromId
+forwardedToEvent text fwds = ForwardedAndText text fwds
+
+
+messageToEventType :: Message -> EventType
+messageToEventType (Message _ _ _ _ text _ (Specific fwd) _) = forwardedToEvent text fwd
+messageToEventType (Message _ _ _ _ _ _ _ (Specific [Attachment _ (DocC document)])) =
+  case audio_msg (preview document) of
+    Default       -> Unknown
+    Specific prev -> AudioMessage $ link_ogg prev
+messageToEventType _ = Unknown
+
 getName :: ForwardedMessage -> [Profile] -> String
-getName (ForwardedMessage fromId _ _ _) profiles =
+getName (ForwardedMessage fromId _ _ _ _) profiles =
   let profm = find (\(Profile id _ _ _ _ _ _) -> fromId == id) profiles
   in case profm of
        Just prof -> (first_name prof) ++ " " ++ (last_name prof)
-       Nothing -> ""
+       Nothing   -> ""
+
+getPersonification :: Int -> [Profile] -> String
+getPersonification fromId profiles =
+  let profileM = find (\(Profile id _ _ _ _ _ _) -> fromId == id) profiles in
+  case profileM of
+    Just profile ->
+      let name = (first_name profile) ++ " " ++ (last_name profile) in
+      case (sex profile) of
+        Specific sex ->
+          if sex == 1 then name ++ " сказала: "
+                      else name ++ " сказал: "
+        Default -> name ++ " сказал:"
+    Nothing -> "Неизвестный сказал: "
 
 forwardsToText :: [Profile] -> [ForwardedMessage] -> String
 forwardsToText profiles fwds = intercalate "\n" $ map (forwardsToTextHelper profiles) fwds
@@ -58,9 +95,12 @@ forwardsToText profiles fwds = intercalate "\n" $ map (forwardsToTextHelper prof
 
 toEvent :: Message -> [Profile] -> ConduitEvent
 toEvent msg profiles =
-  case (forwardedMesages msg) of
-    Default -> ConduitEventCommand (getMText msg) ""
-    Specific fwd -> ConduitEventCommand (getMText msg) (forwardsToText profiles fwd)
+  case (messageToEventType msg) of
+    Unknown                          -> ConduitEventIdle
+    SimpleText                       -> ConduitEventCommand (getMText msg) ""
+    ForwardedAndText msgText fwd     -> ConduitEventCommand msgText (forwardsToText profiles fwd)
+    AudioMessage url                 -> ConduitEventAudio url "Ты сказал: "
+    ForwardedAudioMessage url fromId -> ConduitEventAudio url (getPersonification fromId profiles)
 
 processLpResponse :: LogIO m => ConduitChannel -> LpHistoryResult -> APIOwner -> m ()
 processLpResponse chan result owner = do
@@ -71,7 +111,7 @@ processLpResponse chan result owner = do
          logDebugT $ fromString $ "Got message: " ++ (show msg)
          async (listenResponse (VK.API.Messages.peerId msg) respchan owner)
          writeChan chan ((toEvent msg (defaultTo [] $ profiles result)), respchan))
-      (filter (\mess -> (getFrom mess) /= (ownerId owner)) (items (messages result)))
+      (filter (\mess -> (getFrom mess) /= (VK.API.ownerId owner)) (items (messages result)))
   return ()
 
 startPollingApi :: LogIO m => APIOwner -> Int -> ConduitChannel -> m ()

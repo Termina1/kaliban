@@ -1,15 +1,16 @@
-{-# LANGUAGE ConstraintKinds, FlexibleContexts #-}
+{-# LANGUAGE ConstraintKinds, DataKinds, FlexibleContexts, MultiParamTypeClasses #-}
 
 module Util where
 
-import Data.Optional
-import Data.Aeson
-import Control.Applicative
-import Control.Monad.Log
-import Text.PrettyPrint.Leijen.Text
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Control
-import Data.Time.Format
+import           Control.Applicative
+import           Control.Monad.IO.Class
+import           Control.Monad.Log
+import           Control.Monad.Trans.Control
+import           Data.Aeson
+import           Data.Optional
+import           Data.Time.Format
+import qualified Network.Google               as Google
+import           Text.PrettyPrint.Leijen.Text
 
 instance FromJSON a => FromJSON (Optional a) where
   parseJSON val = (fmap Specific (parseJSON val)) <|> return Default
@@ -18,6 +19,7 @@ infixl 4 .:!?
 (.:!?) o name = o .:? name .!= Default
 
 type LogIO m = (MonadLog (WithTimestamp (WithSeverity Doc)) m, MonadIO m, MonadBaseControl IO m)
+type GEnv = Google.Env '["https://www.googleapis.com/auth/cloud-platform"]
 
 data LogginMode = DefaultMode | VerboseMode
 
