@@ -38,3 +38,17 @@ logErrorT doc = timestamp (WithSeverity Control.Monad.Log.Error doc) >>= logMess
 
 logDebugT :: (MonadLog (WithTimestamp (WithSeverity a)) m, MonadIO m) => a -> m ()
 logDebugT doc = timestamp (WithSeverity Debug doc) >>= logMessage
+
+data Timeout = Timeout {
+  currentTimeout :: Int,
+  defaultTimeout :: Int,
+  maxTimeout :: Int
+}
+
+backoff :: Timeout -> Timeout
+backoff (Timeout currentTimeout defaultTimeout maxTimeout) =
+  let nwCurrent = min (currentTimeout * 2) maxTimeout in
+    Timeout nwCurrent defaultTimeout maxTimeout
+
+reset :: Timeout -> Timeout
+reset (Timeout currentTimeout defaultTimeout maxTimeout) = Timeout defaultTimeout defaultTimeout maxTimeout
