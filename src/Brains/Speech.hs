@@ -34,7 +34,7 @@ runGoogleRequest url env = do
 
 speechToText :: String -> IO (Maybe String)
 speechToText url = do
-  lgr  <- Google.newLogger Google.Error stdout
+  lgr  <- Google.newLogger Google.Debug stdout
   env  <- Google.newEnv <&>
     (Google.envLogger .~ lgr)
     . (Google.envScopes .~ cloudPlatformScope)
