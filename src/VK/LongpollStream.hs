@@ -1,22 +1,22 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleContexts, GADTs #-}
+{-# LANGUAGE DeriveGeneric, FlexibleContexts, GADTs, MultiParamTypeClasses, OverloadedStrings #-}
 
 module VK.LongpollStream where
 
-import Control.Concurrent
-import Streaming
-import qualified VK.API.Groups as G
-import VK.API
-import VK.API.Messages
-import VK.ResponseTypes
-import Network.HTTP.Conduit
-import Network.URL
-import qualified Streaming.Prelude as S
+import           Control.Concurrent
+import           Control.Monad.State
+import           Control.Monad.State.Class
+import           Data.Aeson
 import qualified Data.ByteString.Lazy.UTF8 as B
-import qualified Data.HashMap.Strict as HM
-import Data.Aeson
-import Control.Monad.State.Class
-import Control.Monad.State
-import Util
+import qualified Data.HashMap.Strict       as HM
+import           Network.HTTP.Conduit
+import           Network.URL
+import           Streaming
+import qualified Streaming.Prelude         as S
+import           Util
+import           VK.API
+import qualified VK.API.Groups             as G
+import           VK.API.Messages
+import           VK.ResponseTypes
 
 data HandleResult = HRetry | HRecreate | HPropogate | HOk
 
@@ -73,9 +73,9 @@ lpCredentialsStream credStream = S.mapM getLpCreds credStream
     getLpCreds owner = do
       result <- G.getLongpollServer owner (negate (ownerId owner))
       case result of
-        APIError code err -> return $ Left (if code == 5 then LpCredError else LpUnknownCredError err)
+        APIError code err   -> return $ Left (if code == 5 then LpCredError else LpUnknownCredError err)
         APIRequestError err -> return $ Left $ LpUnknownCredError err
-        APIResult creds -> return $ Right creds
+        APIResult creds     -> return $ Right creds
 
 lpRequestStream :: (MonadIO m, MonadState String m) => Stream (Of (LpContainer G.GroupLPServer)) m () -> Stream (Of (LpContainer Message)) m ()
 lpRequestStream lpServerStream = effect $ do
@@ -107,9 +107,9 @@ lpRequestStream lpServerStream = effect $ do
               put ts
               return $ (S.map Right (S.each messages)) >> lpRequestStream nextStream
   where
-    accMessage acc (BotEventReply message) = message : acc
+    accMessage acc (BotEventReply message)   = message : acc
     accMessage acc (BotEventMessage message) = message : acc
-    accMessage acc BotEventUnknown = acc
+    accMessage acc BotEventUnknown           = acc
 
     lpEventFromStr :: B.ByteString -> Either String BotLongpollResponse
     lpEventFromStr body = eitherDecode body
@@ -135,7 +135,7 @@ repeaterStream handle timeout streamCreator = repeaterStreamHelper (streamCreato
 cacheStream :: Monad m => Stream (Of a) m r -> Stream (Of a) m r
 cacheStream stream = effect (S.next stream >>= \t ->
   case t of
-    Left r -> return $ return r
+    Left r       -> return $ return r
     Right (a, _) -> return $ S.repeat a)
 
 probe :: (MonadIO m, Show a) => String -> Stream (Of a) m r -> Stream (Of a) m r
@@ -143,13 +143,13 @@ probe tag stream = S.mapM (\val -> (liftIO $ putStrLn (tag ++ ": " ++ (show val)
 
 lpCanHandle :: LpContainer Message -> HandleResult
 lpCanHandle (Left (LPKeyError _)) = HRecreate
-lpCanHandle (Left _) = HRetry
-lpCanHandle (Right _) = HOk
+lpCanHandle (Left _)              = HRetry
+lpCanHandle (Right _)             = HOk
 
 apiCanHandle :: LpContainer G.GroupLPServer -> HandleResult
 apiCanHandle (Left LpCredError) = HPropogate
-apiCanHandle (Left _) = HRetry
-apiCanHandle (Right _) = HOk
+apiCanHandle (Left _)           = HRetry
+apiCanHandle (Right _)          = HOk
 
 timeout :: Timeout
 timeout = Timeout 1 1 10

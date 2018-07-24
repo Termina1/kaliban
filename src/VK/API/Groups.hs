@@ -3,19 +3,17 @@
 
 module VK.API.Groups where
 
-import Data.Aeson
-import Data.List
-import Data.Optional
-import VK.API
-import GHC.Generics
-import VK.ResponseTypes
 import Control.Monad.IO.Class
+import Data.Aeson
+import GHC.Generics
+import VK.API
+import VK.ResponseTypes
 
 
 data GroupLPServer = GroupLPServer {
   server :: String,
-  key :: String,
-  ts :: Int
+  key    :: String,
+  ts     :: Int
 } deriving (Show, Generic)
 
 instance FromJSON GroupLPServer

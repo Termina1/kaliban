@@ -9,7 +9,6 @@ import           Control.Monad.Trans.Resource (runResourceT)
 import qualified Data.ByteString              as BB
 import           Data.ByteString.Base64
 import           Data.ByteString.Lazy
-import qualified Data.ByteString.Lazy         as BL
 import           Data.String
 import qualified Data.Text                    as Text
 import qualified Network.Google               as Google
