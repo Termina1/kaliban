@@ -5,42 +5,25 @@ module Conduits.VK
   , initConduit
   ) where
 
-import Conduit
-import Control.Concurrent              (threadDelay)
-import Control.Concurrent.Async.Lifted
-import Control.Concurrent.MonadIO      (Chan, newChan, readChan, writeChan)
-import Control.Monad.IO.Class
-import Control.Monad.Log
-import Data.List
-import Data.Optional
-import Data.String
-import Util
-import VK.API
-import VK.API.Messages
-import VK.ResponseTypes
-
-doLater :: LogIO m => Double -> m () -> m ()
-doLater ms io = do
-  liftIO $ threadDelay (round (ms * 1000 * 1000))
-  io
-  return ()
+import           Conduit
+import           Control.Concurrent              (threadDelay)
+import           Control.Concurrent.Async.Lifted
+import           Control.Concurrent.MonadIO      (Chan, newChan, readChan, writeChan)
+import           Control.Monad.IO.Class
+import           Control.Monad.State
+import           Data.List
+import           Data.Optional
+import           Data.String
+import qualified Streaming.Prelude               as S
+import           Util
+import           VK.API
+import           VK.API.Messages
+import qualified VK.API.Users                    as Users
+import           VK.LongpollStream
+import           VK.ResponseTypes
 
 data VKConduit = VKConduit
   { owner :: APIOwner
-  }
-
-
-getLpParams :: Int -> LpHistoryParams
-getLpParams pts =
-  LpHistoryParams
-  { timestamp = Right pts
-  , previewLength = Default
-  , fields = Default
-  , eventsLimit = Default
-  , msgsLimit = Default
-  , maxId = Default
-  , lpVer = Specific 3
-  , onlines = Default
   }
 
 data EventType =
@@ -59,12 +42,12 @@ forwardedToEvent text fwds = ForwardedAndText text fwds
 
 
 messageToEventType :: Message -> EventType
-messageToEventType (Message _ _ _ _ text _ (Specific fwd) _) = forwardedToEvent text fwd
-messageToEventType (Message _ _ _ _ _ _ _ (Specific [Attachment _ (DocC document)])) =
+messageToEventType (Message _ _ _ _ text _ (Specific fwd) _ _) = forwardedToEvent text fwd
+messageToEventType (Message _ _ _ _ _ _ _ (Specific [Attachment _ (DocC document)]) _) =
   case audio_msg (preview document) of
     Default       -> Unknown
     Specific prev -> AudioMessage $ link_ogg prev
-messageToEventType (Message _ _ _ _ text _ _ _) = SimpleText text
+messageToEventType (Message _ _ _ _ text _ _ _ _) = SimpleText text
 
 getName :: ForwardedMessage -> [Profile] -> String
 getName (ForwardedMessage fromId _ _ _ _) profiles =
@@ -102,31 +85,6 @@ toEvent msg profiles =
     AudioMessage url                 -> ConduitEventAudio url "Ты сказал: "
     ForwardedAudioMessage url fromId -> ConduitEventAudio url (getPersonification fromId profiles)
 
-processLpResponse :: LogIO m => ConduitChannel -> LpHistoryResult -> APIOwner -> m ()
-processLpResponse chan result owner = do
-  sequence $
-    map
-      (\msg -> do
-         respchan <- newChan
-         logDebugT $ fromString $ "Got message: " ++ (show msg)
-         async (listenResponse (VK.API.Messages.peerId msg) respchan owner)
-         writeChan chan ((toEvent msg (defaultTo [] $ profiles result)), respchan))
-      (filter (\mess -> (getFrom mess) /= (VK.API.ownerId owner)) (items (messages result)))
-  return ()
-
-startPollingApi :: LogIO m => APIOwner -> Int -> ConduitChannel -> m ()
-startPollingApi owner pts chan = do
-  result <- liftIO $ getLongpollHistory owner (getLpParams pts)
-  logAPIRequestError "messages.getLongpollHistory" result
-  case result of
-    APIError errorCode errorMessage -> do
-      doLater 3 (startPollingApi owner pts chan)
-    APIRequestError message -> do
-      doLater 1 (startPollingApi owner pts chan)
-    APIResult response -> do
-      processLpResponse chan response owner
-      doLater 0.4 (startPollingApi owner (newPts response) chan)
-
 logAPIRequestError :: LogIO m => String -> APIResponse a -> m ()
 logAPIRequestError method resp =
   case resp of
@@ -156,15 +114,34 @@ listenResponse peerId chan owner = do
   resp <- readChan chan
   processResponse resp owner peerId
 
+requestNeededProfiles :: LogIO m => APIOwner -> Message -> m [Profile]
+requestNeededProfiles owner message = let needed = (getFrom message) : walkForwards (defaultTo [] $ forwardedMesages message) in do
+  result <- Users.get owner (nub needed)
+  logAPIRequestError "Error requesting profiles" result
+  case result of
+    APIResult profiles -> return profiles
+    _                  -> return []
+  where
+    foldOverForwards acc fwd = let tail = acc ++ walkForwards (defaultTo [] $ forwarded fwd) in
+      (getFMFrom fwd) : tail
+    walkForwards :: [ForwardedMessage] -> [Int]
+    walkForwards fwdMessages = foldl foldOverForwards [] fwdMessages
+
+
+proccessMessage :: LogIO m => APIOwner -> ConduitChannel -> LpContainer Message -> m ()
+proccessMessage _ _ (Left err) = logErrorT (fromString $ (show err))
+proccessMessage owner chan (Right message) =
+  if (getFrom message) == (ownerId owner)
+  then return ()
+  else do
+    respchan <- newChan
+    logDebugT $ fromString $ "Got message: " ++ (show message)
+    profiles <- requestNeededProfiles owner message
+    async (listenResponse (VK.API.Messages.peerId message) respchan owner)
+    writeChan chan ((toEvent message profiles), respchan)
+
 instance Conduit VKConduit where
   initConduit vkcond chan = do
-    ptsResp <- liftIO $ getLongpollServer (owner vkcond) True 3
-    logAPIRequestError "messages.getLongpollServer" ptsResp
     logInfoT "Init VK conduit"
-    case ptsResp of
-      APIError errorCode errorMessage -> do
-        doLater 3 (initConduit vkcond chan)
-      APIRequestError message -> do
-        doLater 3 (initConduit vkcond chan)
-      APIResult response -> startPollingApi (owner vkcond) (defaultTo 0 (pts response)) chan
+    runStateT (S.mapM_ (proccessMessage (owner vkcond) chan) (longpollStream (owner vkcond))) ""
     return ()

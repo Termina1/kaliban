@@ -72,6 +72,9 @@ data ForwardedMessage = ForwardedMessage
 getFMText :: ForwardedMessage -> String
 getFMText (ForwardedMessage _ _ text _ _) = defaultTo "" text
 
+getFMFrom :: ForwardedMessage -> Int
+getFMFrom (ForwardedMessage fromId _ _ _ _) = fromId
+
 instance FromJSON ForwardedMessage where
   parseJSON =
     withObject "fwd_message" $ \o -> do
@@ -91,13 +94,14 @@ data Message = Message
   , randomId         :: Optional Int
   , forwardedMesages :: Optional [ForwardedMessage]
   , attachments      :: Optional [Attachment]
+  , out              :: Int
   } deriving (Show)
 
 getFrom :: Message -> Int
-getFrom (Message _ _ _ fromId _ _ _ _) = fromId
+getFrom (Message _ _ _ fromId _ _ _ _ _) = fromId
 
 getMText :: Message -> String
-getMText (Message _ _ _ _ text _ _ _) = text
+getMText (Message _ _ _ _ text _ _ _ _) = text
 
 instance FromJSON Message where
   parseJSON =
@@ -110,6 +114,7 @@ instance FromJSON Message where
       text <- o .: "text"
       randomId <- o .:!? "random_id"
       attachments <- o .:!? "attachments"
+      out <- o .: "out"
       return Message {..}
 
 getById :: APIOwner -> [Int] -> Optional Int -> IO (APIResponse (WithCount Message))
@@ -153,6 +158,7 @@ data LpHistoryParams = LpHistoryParams
   , onlines       :: Optional Bool
   } deriving (Show)
 
+lpHistoryParams :: Int -> LpHistoryParams
 lpHistoryParams pts = LpHistoryParams (Right pts) Default Default Default Default Default (Specific 3) Default
 
 fromBool :: Bool -> String

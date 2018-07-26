@@ -51,4 +51,4 @@ backoff (Timeout currentTimeout defaultTimeout maxTimeout) =
     Timeout nwCurrent defaultTimeout maxTimeout
 
 reset :: Timeout -> Timeout
-reset (Timeout currentTimeout defaultTimeout maxTimeout) = Timeout defaultTimeout defaultTimeout maxTimeout
+reset (Timeout _ defaultTimeout maxTimeout) = Timeout defaultTimeout defaultTimeout maxTimeout

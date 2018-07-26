@@ -4,10 +4,10 @@ module VK.LongpollStream where
 
 import           Control.Concurrent
 import           Control.Monad.State
-import           Control.Monad.State.Class
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.UTF8 as B
 import qualified Data.HashMap.Strict       as HM
+import           Data.String
 import           Network.HTTP.Conduit
 import           Network.URL
 import           Streaming
@@ -138,8 +138,8 @@ cacheStream stream = effect (S.next stream >>= \t ->
     Left r       -> return $ return r
     Right (a, _) -> return $ S.repeat a)
 
-probe :: (MonadIO m, Show a) => String -> Stream (Of a) m r -> Stream (Of a) m r
-probe tag stream = S.mapM (\val -> (liftIO $ putStrLn (tag ++ ": " ++ (show val))) >> return val) stream
+probe :: (MonadIO m, Show a, LogIO m) => String -> Stream (Of a) m r -> Stream (Of a) m r
+probe tag stream = S.mapM (\val -> (logInfoT $ fromString $ (tag ++ ": " ++ (show val))) >> return val) stream
 
 lpCanHandle :: LpContainer Message -> HandleResult
 lpCanHandle (Left (LPKeyError _)) = HRecreate
@@ -154,7 +154,7 @@ apiCanHandle (Right _)          = HOk
 timeout :: Timeout
 timeout = Timeout 1 1 10
 
-longpollStream :: APIOwner -> Stream (Of (LpContainer Message)) (StateT String IO) ()
+longpollStream :: LogIO m => APIOwner -> Stream (Of (LpContainer Message)) (StateT String m) ()
 longpollStream owner = repeaterStream lpCanHandle timeout $
   (\_ -> probe "longpoll" $ lpRequestStream $ cacheStream $ repeaterStream apiCanHandle timeout $
   (\_ -> probe "credentials" $ lpCredentialsStream $ apiCredentialsStream owner))
