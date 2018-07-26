@@ -22,7 +22,9 @@ executable kaliban-exe
                      , Conduit
                      , Conduits.VK
                      , VK.API
+                     , VK.API.Groups
                      , VK.API.Messages
+                     , VK.API.Users
                      , VK.ResponseTypes
                      , VK.LongpollStream
                      , Util
