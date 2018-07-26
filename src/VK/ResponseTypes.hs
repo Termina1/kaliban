@@ -8,7 +8,6 @@ import qualified Data.HashMap.Strict as HM
 import           Data.List
 import           Data.Optional
 import qualified Data.Vector         as V
-import           Util
 
 toInt :: Optional Int -> Int
 toInt (Specific i) = i
@@ -98,7 +97,7 @@ instance FromJSON LongpollEvent where
                    vkludges <- parseKludges (arr V.! 5)
                    vrandomId <- parseJSON (arr V.! 6)
                    return $ LpNewMessage vmessageId vflags vpeerId vdate vtext vkludges vrandomId)
-      parseEvent _ arr = return LpNotSuppEvent
+      parseEvent _ _ = return LpNotSuppEvent
   parseJSON _ = return LpNotSuppEvent
 
 data LongpollResponse

@@ -24,6 +24,7 @@ executable kaliban-exe
                      , VK.API
                      , VK.API.Messages
                      , VK.ResponseTypes
+                     , VK.LongpollStream
                      , Util
                      , Start
                      , Network.Google.Resource.Speech.Operations.Get
@@ -61,6 +62,8 @@ executable kaliban-exe
                      , base64-bytestring
                      , http-conduit
                      , text
+                     , streaming
+                     , mtl
   default-language:    Haskell2010
 
 test-suite kaliban-test
