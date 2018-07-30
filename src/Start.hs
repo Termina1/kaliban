@@ -10,10 +10,12 @@ import Control.Monad.IO.Class
 import Control.Monad.Log
 import System.IO
 import Util
+import Data.Time.Clock.POSIX
 
 startApp :: [ConduitInstance] -> BrainCells -> IO ()
 startApp conds cells = do
-  withFile "/var/log/kaliban/data.log" WriteMode $ \fhandle ->
+  time <- getPOSIXTime
+  withFile ("/var/log/kaliban/data" ++ (show $ round time) ++ ".log") WriteMode $ \fhandle ->
     withFDHandler defaultBatchingOptions fhandle 0.4 80 $ \logToStdout ->
         runLoggingT (startBot conds cells) (logControledSeverity logToStdout VerboseMode)
 
