@@ -3,7 +3,10 @@
 module Conduit where
 
 import Control.Concurrent.Async.Lifted
-import Control.Concurrent.MonadIO      (Chan, newChan, readChan, writeChan)
+import Control.Concurrent.MonadIO (Chan, newChan, readChan, writeChan)
+import Control.Exception
+import Control.Monad
+import Control.Monad.Catch
 import Util
 
 data ConduitEvent where
@@ -29,24 +32,20 @@ data ConduitInstance =
   forall a. Conduit a =>
             MkConduitInstance a
 
-initConduitInstance :: LogIO m => ConduitInstance -> m (ConduitChannel)
-initConduitInstance (MkConduitInstance inst) = do
-  chan <- newChan
-  async $ initConduit inst chan
-  return chan
+initConduitInstance :: LogIO m => (ConduitChannel, ConduitInstance) -> m ()
+initConduitInstance (chan, (MkConduitInstance inst)) = initConduit inst chan
 
-composeChannels :: LogIO m => [ConduitChannel] -> m (ConduitChannel)
-composeChannels chans = do
-  composedChan <- newChan
-  mapM_ (\chan -> async (composeHelper composedChan chan)) chans
-  return composedChan
+composeChannels :: LogIO m => ConduitChannel -> [ConduitChannel] -> m ()
+composeChannels composedChan chans = do
+  mapConcurrently_ (composeHelper composedChan) chans
   where
     composeHelper chanc chan = do
       val <- readChan chan
       writeChan chanc val
       composeHelper chanc chan
 
-startConduits :: LogIO m => [ConduitInstance] -> m ConduitChannel
-startConduits conduits =
-  let instances = map initConduitInstance conduits
-  in sequence instances >>= composeChannels
+startConduits :: LogIO m => ConduitChannel -> [ConduitInstance] -> m ()
+startConduits cchan conduits = do
+  chans <- replicateM (length conduits) newChan
+  concurrently (mapConcurrently_ initConduitInstance (zip chans conduits)) (composeChannels cchan chans)
+  return ()

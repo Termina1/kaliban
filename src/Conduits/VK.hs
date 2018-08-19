@@ -6,19 +6,21 @@ module Conduits.VK
   ) where
 
 import           Conduit
-import           Control.Concurrent              (threadDelay)
+import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.Async.Lifted
-import           Control.Concurrent.MonadIO      (Chan, newChan, readChan, writeChan)
+import           Control.Concurrent.MonadIO (Chan, newChan, readChan, writeChan)
+import           Control.Exception
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.State
 import           Data.List
 import           Data.Optional
 import           Data.String
-import qualified Streaming.Prelude               as S
+import qualified Streaming.Prelude as S
 import           Util
 import           VK.API
 import           VK.API.Messages
-import qualified VK.API.Users                    as Users
+import qualified VK.API.Users as Users
 import           VK.LongpollStream
 import           VK.ResponseTypes
 

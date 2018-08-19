@@ -6,12 +6,12 @@ import Brain
 import Conduit
 import Control.Concurrent.Async.Lifted
 import Control.Concurrent.Chan
+import Control.Exception
 import Control.Monad.IO.Class
 import Control.Monad.Log
+import Data.Time.Clock.POSIX
 import System.IO
 import Util
-import Data.Time.Clock.POSIX
-import Control.Exception
 
 startApp :: [ConduitInstance] -> BrainCells -> IO ()
 startApp conds cells = do
@@ -30,6 +30,7 @@ botLoop chan cells = do
 
 startBot :: LogIO m => [ConduitInstance] -> BrainCells -> m ()
 startBot instances cells = do
-    chan <- startConduits instances
+  chan <- liftIO newChan
+  withAsync (startConduits chan instances) $ \a -> do
+    link a
     botLoop chan cells
-    return ()
