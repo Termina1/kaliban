@@ -2,6 +2,7 @@
 
 module Brains.Trello where
 
+import           Control.Monad.Catch
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.Optional
@@ -44,11 +45,11 @@ aiRequest :: FromJSON a => APIOwner -> String -> String -> [(String, String)] ->
 aiRequest owner method resource params =
   let req = fromString $ (getRequestUrl owner resource params)
   in let freq = setRequestMethod (fromString method) req
-     in httpLBS freq >>= \res -> do
+     in catch (httpLBS freq >>= \res -> do
           let resp = getResponseBody res
           case eitherDecode resp of
             Left err  -> return $ Left err
-            Right obj -> return $ Right obj
+            Right obj -> return $ Right obj) $ \e -> return $ Left $ (show (e :: SomeException))
   where
     ownerToParams :: APIOwner -> [(String, String)]
     ownerToParams owner = [("key", trelloKey owner), ("token", (trelloToken owner))]

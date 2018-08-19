@@ -2,6 +2,7 @@
 
 module Brains.AI where
 
+import           Control.Monad.Catch
 import           Data.Aeson
 import           Data.Aeson.Types
 import qualified Data.HashMap.Strict as HM
@@ -134,11 +135,11 @@ aiRequest owner text sessionId =
   let req = fromString $ (getRequestUrl owner text sessionId) in
   let freq = setRequestHeaders [("Authorization", fromString $ "Bearer " ++ (aiToken owner)),
                                 ("Accept", fromString $ "application/json")] req in
-  httpLBS freq >>= \res -> do
+  catch (httpLBS freq >>= \res -> do
     let resp = getResponseBody res
     case eitherDecode resp of
       Left err  -> return $ Left err
-      Right obj -> return $ Right obj
+      Right obj -> return $ Right obj) $ \e -> return $ Left $ show (e :: SomeException)
   where
     ownerToParams :: APIOwner -> [(String, String)]
     ownerToParams owner = [ ("lang", (show (lang owner))), ("v", (v owner)) ]

@@ -3,6 +3,7 @@
 module Util where
 
 import           Control.Applicative
+import           Control.Monad.Catch          (MonadCatch)
 import           Control.Monad.IO.Class
 import           Control.Monad.Log
 import           Control.Monad.Trans.Control
@@ -18,7 +19,7 @@ instance FromJSON a => FromJSON (Optional a) where
 infixl 4 .:!?
 (.:!?) o name = o .:? name .!= Default
 
-type LogIO m = (MonadLog (WithTimestamp (WithSeverity Doc)) m, MonadIO m, MonadBaseControl IO m)
+type LogIO m = (MonadLog (WithTimestamp (WithSeverity Doc)) m, MonadIO m, MonadBaseControl IO m, MonadCatch m)
 type GEnv = Google.Env '["https://www.googleapis.com/auth/cloud-platform"]
 
 data LogginMode = DefaultMode | VerboseMode
@@ -42,7 +43,7 @@ logDebugT doc = timestamp (WithSeverity Debug doc) >>= logMessage
 data Timeout = Timeout {
   currentTimeout :: Int,
   defaultTimeout :: Int,
-  maxTimeout :: Int
+  maxTimeout     :: Int
 }
 
 backoff :: Timeout -> Timeout

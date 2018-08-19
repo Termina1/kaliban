@@ -66,6 +66,7 @@ executable kaliban-exe
                      , text
                      , streaming
                      , mtl
+                     , exceptions
   default-language:    Haskell2010
 
 test-suite kaliban-test

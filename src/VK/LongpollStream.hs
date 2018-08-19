@@ -3,6 +3,7 @@
 module VK.LongpollStream where
 
 import           Control.Concurrent
+import           Control.Monad.Catch
 import           Control.Monad.State
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.UTF8 as B
@@ -17,6 +18,7 @@ import           VK.API
 import qualified VK.API.Groups             as G
 import           VK.API.Messages
 import           VK.ResponseTypes
+
 
 data HandleResult = HRetry | HRecreate | HPropogate | HOk
 
@@ -77,7 +79,7 @@ lpCredentialsStream credStream = S.mapM getLpCreds credStream
         APIRequestError err -> return $ Left $ LpUnknownCredError err
         APIResult creds     -> return $ Right creds
 
-lpRequestStream :: (MonadIO m, MonadState String m) => Stream (Of (LpContainer G.GroupLPServer)) m () -> Stream (Of (LpContainer Message)) m ()
+lpRequestStream :: (MonadIO m, MonadState String m, MonadCatch m) => Stream (Of (LpContainer G.GroupLPServer)) m () -> Stream (Of (LpContainer Message)) m ()
 lpRequestStream lpServerStream = effect $ do
   nextVal <- S.next lpServerStream
   case nextVal of
@@ -90,22 +92,24 @@ lpRequestStream lpServerStream = effect $ do
           let currentTs = if storedTs == "" then show (G.ts lpServer) else storedTs
           let params = [("act", "a_check"), ("key", G.key lpServer), ("ts", currentTs), ("wait", "25")]
           let lpurl = (G.server lpServer) ++ "?" ++ exportParams params
-          result <- simpleHttp lpurl
-          case lpEventFromStr result of
-            Left str -> return $ (S.yield $ Left $ LPError $ "invalid JSON: " ++ str) >> lpRequestStream nextStream
-            Right (BotResponseError failed tsM) -> if failed == 1 then
-              case tsM of
-                Nothing -> return $ (S.yield $ Left $ LPError "No ts in failed: 1 event") >> lpRequestStream nextStream
-                Just ts -> do
-                  put (show ts)
-                  return $ (S.yield $ Left $ LPError "ts expired") >> lpRequestStream nextStream
-            else
-              return $ (S.yield $ Left $ LPKeyError "key failed") >> lpRequestStream nextStream
+          catch (do
+            result <- simpleHttp lpurl
+            case lpEventFromStr result of
+              Left str -> return $ (S.yield $ Left $ LPError $ "invalid JSON: " ++ str) >> lpRequestStream nextStream
+              Right (BotResponseError failed tsM) -> if failed == 1 then
+                case tsM of
+                  Nothing -> return $ (S.yield $ Left $ LPError "No ts in failed: 1 event") >> lpRequestStream nextStream
+                  Just ts -> do
+                    put (show ts)
+                    return $ (S.yield $ Left $ LPError "ts expired") >> lpRequestStream nextStream
+              else
+                return $ (S.yield $ Left $ LPKeyError "key failed") >> lpRequestStream nextStream
 
-            Right (BotResponseOk ts updates) -> do
-              let messages = foldl accMessage [] updates
-              put ts
-              return $ (S.map Right (S.each messages)) >> lpRequestStream nextStream
+              Right (BotResponseOk ts updates) -> do
+                let messages = foldl accMessage [] updates
+                put ts
+                return $ (S.map Right (S.each messages)) >> lpRequestStream nextStream)
+            (\e -> return $ (S.yield $ Left $ LPError $ "Exception: " ++ (show (e :: SomeException))) >> lpRequestStream nextStream)
   where
     accMessage acc (BotEventReply message)   = message : acc
     accMessage acc (BotEventMessage message) = message : acc

@@ -6,6 +6,7 @@ import Data.Aeson          (FromJSON, eitherDecode)
 import Data.String
 import Network.HTTP.Simple
 import Network.URL
+import Control.Exception.Base
 
 import VK.ResponseTypes
 
@@ -19,13 +20,14 @@ data APIOwner = APIOwner
   }
 
 apiRequest :: (FromJSON a, Paramable b) => APIOwner -> String -> b -> IO (APIResponse a)
-apiRequest owner method params =
-  (httpLBS $ fromString $ getRequestUrl owner method (toParams params)) >>= \res -> do
-    let resp = getResponseBody res
-    case eitherDecode resp of
-      Left err  -> return $ APIRequestError err
-      Right obj -> return obj
+apiRequest owner method params = catch doRequest $ \exc -> return $ APIRequestError $ show (exc :: SomeException)
   where
+    doRequest =
+      (httpLBS $ fromString $ getRequestUrl owner method (toParams params)) >>= \res -> do
+        let resp = getResponseBody res
+        case eitherDecode resp of
+          Left err  -> return $ APIRequestError err
+          Right obj -> return obj
     ownerToParams :: APIOwner -> [(String, String)]
     ownerToParams owner =
       [ ("access_token", accessToken owner)

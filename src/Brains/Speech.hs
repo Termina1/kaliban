@@ -5,6 +5,7 @@ module Brains.Speech (speechToText) where
 import           Control.Lens                 ((.~), (<&>), (^?), _1)
 import           Control.Lens.Cons
 import           Control.Monad
+import           Control.Monad.Catch
 import           Control.Monad.Trans.Resource (runResourceT)
 import qualified Data.ByteString              as BB
 import           Data.ByteString.Base64
@@ -27,9 +28,12 @@ performRequest body env = runResourceT . Google.runGoogle env $ do
   Google.send (speechRecognize speechReq)
 
 runGoogleRequest :: String -> GEnv -> IO (Maybe RecognizeResponse)
-runGoogleRequest url env = do
+runGoogleRequest url env = catch (do
   body <- simpleHttp url
-  fmap Just $ performRequest (toStrict body) env
+  fmap Just $ performRequest (toStrict body) env) handleException
+  where
+    handleException :: SomeException -> IO (Maybe RecognizeResponse)
+    handleException e = return Nothing
 
 speechToText :: String -> IO (Maybe String)
 speechToText url = do
