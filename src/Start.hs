@@ -11,6 +11,7 @@ import Control.Monad.Log
 import System.IO
 import Util
 import Data.Time.Clock.POSIX
+import Control.Exception
 
 startApp :: [ConduitInstance] -> BrainCells -> IO ()
 startApp conds cells = do
@@ -22,8 +23,9 @@ startApp conds cells = do
 botLoop :: LogIO m => ConduitChannel -> BrainCells -> m ()
 botLoop chan cells = do
     (event, pushback) <- liftIO $ readChan chan
-    liftIO $ async (do response <- processRequest cells event
-                       writeChan pushback response)
+    act <- liftIO $ async (do response <- processRequest cells event
+                              writeChan pushback response)
+    liftIO $ link act
     botLoop chan cells
 
 startBot :: LogIO m => [ConduitInstance] -> BrainCells -> m ()

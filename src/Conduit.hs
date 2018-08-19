@@ -38,7 +38,7 @@ initConduitInstance (MkConduitInstance inst) = do
 composeChannels :: LogIO m => [ConduitChannel] -> m (ConduitChannel)
 composeChannels chans = do
   composedChan <- newChan
-  sequence (map (\chan -> async (composeHelper composedChan chan)) chans)
+  mapM_ (\chan -> async (composeHelper composedChan chan)) chans
   return composedChan
   where
     composeHelper chanc chan = do
