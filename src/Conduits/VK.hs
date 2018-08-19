@@ -139,7 +139,8 @@ proccessMessage owner chan (Right message) =
     respchan <- newChan
     logDebugT $ fromString $ "Got message: " ++ (show message)
     profiles <- requestNeededProfiles owner message
-    async (listenResponse (VK.API.Messages.peerId message) respchan owner)
+    a <- async (listenResponse (VK.API.Messages.peerId message) respchan owner)
+    link a
     writeChan chan ((toEvent message profiles), respchan)
 
 instance Conduit VKConduit where
