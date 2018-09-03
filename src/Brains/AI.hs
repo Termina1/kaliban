@@ -31,12 +31,13 @@ data APIOwner = APIOwner {
   v       :: String
 }
 
-data AIAction = AIActionTask | AIActionChart | AIActionUnknown
+data AIAction = AIActionTask | AIActionChart | AIActionUnknown | AIActionDoorQuery
   deriving (Show)
 
 instance FromJSON AIAction where
   parseJSON (String "create_task")   = return AIActionTask
   parseJSON (String "send_chart")    = return AIActionChart
+  parseJSON (String "door_query")    = return AIActionDoorQuery
   parseJSON (String "input.unknown") = return AIActionUnknown
   parseJSON act                      = return AIActionUnknown
 
@@ -46,6 +47,7 @@ data AIIntentParams where
     date :: Optional Day
   } ->  AIIntentParams
   IntentChartParams :: Int -> AIIntentParams
+  IntentDoorQuery :: AIIntentParams
   IntentUnknown :: AIIntentParams
   deriving (Show)
 
@@ -62,6 +64,7 @@ parseIntentParams AIActionTask = withObject "task action" $ \o -> do
     createTime "" time = IntentTaskParams (fmap localTimeOfDay (parseTimeM False defaultTimeLocale "%H:%M:%S" time)) Default
     createTime date time = IntentTaskParams (fmap localTimeOfDay $ parseTimeM False defaultTimeLocale "%H:%M:%S" time)
                                             (parseTimeM False defaultTimeLocale "%0Y-%m-%d" date)
+parseIntentParams AIActionDoorQuery = const $ return IntentDoorQuery
 parseIntentParams AIActionUnknown = const $ return IntentUnknown
 parseIntentParams action = \val -> fail $ "Unsupported action: " ++ (show action)
 
