@@ -34,7 +34,7 @@ instance FromJSON HomeResponse where
 
 queryHome :: String -> IO (Either String HomeResponse)
 queryHome item = catch(do
-  result <- simpleHttp ("http://tvault:8080/rest/items/" ++ item)
+  result <- simpleHttp ("http://192.168.255.7:8080/rest/items/" ++ item)
   return $ eitherDecode result) (\e -> return $ Left (show (e :: SomeException)))
 
 homeIsDoorOpen :: IO (Either String HomeContactState)
