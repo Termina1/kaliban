@@ -39,5 +39,5 @@ queryHome item = catch(do
 
 homeIsDoorOpen :: IO (Either String HomeContactState)
 homeIsDoorOpen = do
-  result <- queryHome "Entrance"
+  result <- queryHome "EntranceDoor"
   return $ fmap state result
