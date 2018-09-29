@@ -2,7 +2,11 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-extra-deps: [monadIO-0.10.1.4]
+extra-deps:
+  - monadIO-0.10.1.4
+  - Spock-0.13.0.0
+  - Spock-core-0.13.0.0
+  - reroute-0.5.0.0
 resolver: lts-9.1
 docker:
   # Set to false to disable using Docker.  In the project configuration,

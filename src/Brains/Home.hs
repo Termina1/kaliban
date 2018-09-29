@@ -5,6 +5,8 @@ import Data.Aeson
 import Network.HTTP.Conduit
 import           Data.Time
 import           Control.Monad.Catch
+import Data.ByteString.UTF8
+import           Control.Monad.IO.Class
 
 data HomeItem = HomeContact | HomeUnkown
 data HomeContactState = ContactOpen | ContactClosed | ContactUnknown
@@ -40,6 +42,17 @@ queryHome item = catch(do
   result <- simpleHttp ("http://192.168.255.7:8080/rest/items/" ++ item)
   return $ eitherDecode result) (\e -> return $ Left (show (e :: SomeException)))
 
+updateHome :: String -> String -> IO (Either String ())
+updateHome item cmd = catch(do
+  request <- liftIO $ (parseRequest ("http://192.168.255.7:8080/rest/items/" ++ item))
+  let putRequest = request {
+    method = "POST",
+    requestBody = (RequestBodyBS $ fromString cmd)
+  }
+  manager <- newManager tlsManagerSettings
+  result <- httpLbs putRequest manager
+  return $ eitherDecode (responseBody result)) (\e -> return $ Left (show (e :: SomeException)))
+
 homeIsDoorOpen :: IO (Either String HomeContactState)
 homeIsDoorOpen = do
   result <- queryHome "EntranceDoor"
@@ -50,3 +63,14 @@ homeDoorOpenTime :: IO (Either String LocalTime)
 homeDoorOpenTime = do
   result <- queryHome "EntranceTime"
   return $ fmap (\resp -> utcToLocalTime (hoursToTimeZone 3) (state resp)) result
+
+homeSetPresence :: String -> Bool -> IO (Either String ())
+homeSetPresence itemName True = updateHome itemName "ON"
+homeSetPresence itemName False = updateHome itemName "OFF"
+
+
+homeDetectPresence :: String -> Bool -> IO (Either String ())
+homeDetectPresence deviceName state =
+  case deviceName of
+    "Terminal6s" -> homeSetPresence "SlavaHome" state
+    _ -> return $ Right ()

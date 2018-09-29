@@ -5,6 +5,7 @@ module Brain
 
 import Brains.AI
 import Brains.Speech
+import Brains.Server
 import Brains.Trello
 import Brains.Home
 import Conduit
@@ -14,6 +15,7 @@ import Data.Time
 data BrainCells = BrainCells
   { ai     :: Brains.AI.APIOwner
   , trello :: Brains.Trello.APIOwner
+  , server :: Brains.Server.ServerConfig
   }
 
 zone :: TimeZone

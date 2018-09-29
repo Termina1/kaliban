@@ -68,6 +68,7 @@ executable kaliban-exe
                      , streaming
                      , mtl
                      , exceptions
+                     , Spock >=0.11
   default-language:    Haskell2010
 
 test-suite kaliban-test
