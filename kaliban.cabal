@@ -19,6 +19,7 @@ executable kaliban-exe
                      , Brains.AI
                      , Brains.Home
                      , Brains.Trello
+                     , Brains.Server
                      , Brains.Speech
                      , Conduit
                      , Conduits.VK

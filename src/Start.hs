@@ -70,6 +70,6 @@ app config = do
         if (token stateUpdate) == (configToken config)
           then do result <- liftIO $ homeDetectPresence (deviceName stateUpdate) (state stateUpdate)
                   case result of
-                    Left error -> json $ object ["error" .= String "error updating home"]
+                    Left error -> json $ object ["error" .= error]
                     Right () -> json $ object ["result" .= String "ok"]
           else json $ object ["error" .= String "invalid token"]

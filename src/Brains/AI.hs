@@ -31,16 +31,23 @@ data APIOwner = APIOwner {
   v       :: String
 }
 
-data AIAction = AIActionTask | AIActionChart | AIActionUnknown | AIActionDoorQuery | AIQueryDoorOpenTime
+data AIAction =
+  AIActionTask |
+  AIActionChart |
+  AIActionUnknown |
+  AIActionDoorQuery |
+  AIQueryDoorOpenTime |
+  AIQueryWhoIsHome
   deriving (Show)
 
 instance FromJSON AIAction where
-  parseJSON (String "create_task")   = return AIActionTask
-  parseJSON (String "send_chart")    = return AIActionChart
-  parseJSON (String "door_query")    = return AIActionDoorQuery
+  parseJSON (String "create_task")    = return AIActionTask
+  parseJSON (String "send_chart")     = return AIActionChart
+  parseJSON (String "door_query")     = return AIActionDoorQuery
   parseJSON (String "when_door_open") = return AIQueryDoorOpenTime
-  parseJSON (String "input.unknown") = return AIActionUnknown
-  parseJSON act                      = return AIActionUnknown
+  parseJSON (String "who_is_home")    = return AIQueryWhoIsHome
+  parseJSON (String "input.unknown")  = return AIActionUnknown
+  parseJSON act                       = return AIActionUnknown
 
 data AIIntentParams where
   IntentTaskParams :: {
@@ -50,6 +57,7 @@ data AIIntentParams where
   IntentChartParams :: Int -> AIIntentParams
   IntentDoorQuery :: AIIntentParams
   IntentDoorOpenTimeQuery :: AIIntentParams
+  IntentWhoIsHome :: AIIntentParams
   IntentUnknown :: AIIntentParams
   deriving (Show)
 
@@ -68,6 +76,7 @@ parseIntentParams AIActionTask = withObject "task action" $ \o -> do
                                             (parseTimeM False defaultTimeLocale "%0Y-%m-%d" date)
 parseIntentParams AIActionDoorQuery = const $ return IntentDoorQuery
 parseIntentParams AIQueryDoorOpenTime = const $ return IntentDoorOpenTimeQuery
+parseIntentParams AIQueryWhoIsHome = const $ return IntentWhoIsHome
 parseIntentParams AIActionUnknown = const $ return IntentUnknown
 parseIntentParams action = \val -> fail $ "Unsupported action: " ++ (show action)
 

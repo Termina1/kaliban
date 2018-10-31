@@ -12,6 +12,8 @@ data HomeItem = HomeContact | HomeUnkown
 data HomeContactState = ContactOpen | ContactClosed | ContactUnknown
   deriving (Show)
 
+data HomeDweller = Myself
+
 
 instance FromJSON HomeItem where
   parseJSON (String "Contact") = return HomeContact
@@ -51,7 +53,7 @@ updateHome item cmd = catch(do
   }
   manager <- newManager tlsManagerSettings
   result <- httpLbs putRequest manager
-  return $ eitherDecode (responseBody result)) (\e -> return $ Left (show (e :: SomeException)))
+  return $ Right ()) (\e -> return $ Left (show (e :: SomeException)))
 
 homeIsDoorOpen :: IO (Either String HomeContactState)
 homeIsDoorOpen = do
@@ -74,3 +76,18 @@ homeDetectPresence deviceName state =
   case deviceName of
     "Terminal6s" -> homeSetPresence "SlavaHome" state
     _ -> return $ Right ()
+
+homeQueryPresence :: HomeDweller -> IO (Either String Bool)
+homeQueryPresence dweller = do
+  result <- queryHome (toItem dweller)
+  return (result >>= mapState)
+
+  where
+    toItem Myself = "SlavaHome"
+
+    mapState :: HomeResponse String -> Either String Bool
+    mapState resp =
+      case state resp of
+        "ON" -> Right True
+        "OFF" -> Right False
+        _ -> Left "Unknown state"
