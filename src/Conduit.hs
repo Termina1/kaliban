@@ -51,5 +51,5 @@ startConduits cchan conduits = do
   return ()
 
 prependLineResponse :: String -> ConduitResponse -> ConduitResponse
-prependLineResponse prepend (ConduitResponseMessages msg) = ConduitResponseMessages (prepend ++ "\n" ++ msg)
+prependLineResponse prepend (ConduitResponseMessages msg) = ConduitResponseMessages (prepend ++ "\n\n" ++ msg)
 prependLineResponse _ ev = ev
