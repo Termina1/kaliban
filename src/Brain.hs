@@ -75,6 +75,6 @@ processRequest cells (ConduitEventAudio url saying) = do
     Just text -> do
       command <- askAI (ai cells) text "test"
       case command of
-        Left err -> return $ prependLineResponse (saying ++ " " ++ text) (ConduitResponseMessages err)
+        Left err -> return $ prependLineResponse (saying ++ text) (ConduitResponseMessages err)
         Right cmd -> fmap (prependLineResponse (saying ++ " " ++ text)) (processCommand cells cmd "")
 processRequest owner _ = return $ ConduitResponseMessages "Чел, не знаю че как"
