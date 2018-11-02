@@ -11,6 +11,7 @@ import Brains.Home
 import Conduit
 import Data.Optional
 import Data.Time
+import Data.List
 
 data BrainCells = BrainCells
   { ai     :: Brains.AI.APIOwner
@@ -51,11 +52,12 @@ processCommand cells (AICommand IntentDoorOpenTimeQuery response AIQueryDoorOpen
     Left err -> return $ ConduitResponseMessages ("Ошибка: " ++ err)
     Right time -> return $ ConduitResponseMessages ("Дверь открывали: " ++ (show time))
 processCommand cells (AICommand IntentWhoIsHome response _) meta = do
-  response <- homeQueryPresence Myself
+  response <- homeQueryPresenceMulti [Myself, Tanya]
   case response of
     Left err -> return $ ConduitResponseMessages ("Ошибка: " ++ err)
-    Right state -> let str = if state then "Ты дома" else "Никого известного мне" in
-      return $ ConduitResponseMessages str
+    Right states -> return $ ConduitResponseMessages $ intercalate "\n" $ map (\(dweller, state) ->
+      let presence = if state then "дома" else "не дома" in
+      (homeToRealName dweller) ++ " " ++ presence) states
 processCommand cells (AICommand params response action) meta = return $ ConduitResponseMessages response
 processCommand _ (AICommandError code error) _ = return $
   ConduitResponseMessages $ "Не смог понять: " ++ error ++ " (код: " ++ (show code) ++ ")"
@@ -69,10 +71,10 @@ processRequest cells (ConduitEventCommand text meta) = do
 processRequest cells (ConduitEventAudio url saying) = do
   textResult <- speechToText url
   case textResult of
-    Nothing   -> return $ ConduitResponseMessages "Не смог ничего понять"
-    Just text -> return $ ConduitResponseMessages $ saying ++ text
-  -- command <- askAI (ai cells) text "test"
-  -- case command of
-    -- Left err -> return $ ConduitResponseMessages err
-    -- Right cmd -> processCommand cells cmd meta
+    Nothing -> return $ ConduitResponseMessages "Не смог ничего понять"
+    Just text -> do
+      command <- askAI (ai cells) text "test"
+      case command of
+        Left err -> return $ prependLineResponse (saying ++ " " ++ text) (ConduitResponseMessages err)
+        Right cmd -> fmap (prependLineResponse (saying ++ " " ++ text)) (processCommand cells cmd "")
 processRequest owner _ = return $ ConduitResponseMessages "Чел, не знаю че как"

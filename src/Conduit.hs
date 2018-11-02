@@ -49,3 +49,7 @@ startConduits cchan conduits = do
   chans <- replicateM (length conduits) newChan
   concurrently (mapConcurrently_ initConduitInstance (zip chans conduits)) (composeChannels cchan chans)
   return ()
+
+prependLineResponse :: String -> ConduitResponse -> ConduitResponse
+prependLineResponse prepend (ConduitResponseMessages msg) = ConduitResponseMessages (prepend ++ "\n" ++ msg)
+prependLineResponse _ ev = ev

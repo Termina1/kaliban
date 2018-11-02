@@ -23,7 +23,7 @@ performRequest body env = runResourceT . Google.runGoogle env $ do
   let audio = raContent .~ Just (encode body) $ recognitionAudio
   let sconfig = (rcLanguageCode .~ Just "ru-RU")
                 . (rcEncoding .~ Just OggOpus)
-                . (rcSampleRateHertz .~ Just 48000) $ recognitionConfig
+                . (rcSampleRateHertz .~ Just 16000) $ recognitionConfig
   let speechReq = (rrConfig .~ Just sconfig) . (rrAudio .~ Just audio) $ recognizeRequest
   Google.send (speechRecognize speechReq)
 

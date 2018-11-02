@@ -12,8 +12,7 @@ data HomeItem = HomeContact | HomeUnkown
 data HomeContactState = ContactOpen | ContactClosed | ContactUnknown
   deriving (Show)
 
-data HomeDweller = Myself
-
+data HomeDweller = Myself | Tanya
 
 instance FromJSON HomeItem where
   parseJSON (String "Contact") = return HomeContact
@@ -38,6 +37,14 @@ instance (FromJSON a, Show a) => FromJSON (HomeResponse a) where
     label <- o .: "label"
     ttype <- o .: "type"
     return $ HomeResponse link state ttype label
+
+homeToOpenhabItem :: HomeDweller -> String
+homeToOpenhabItem Myself = "SlavaHome"
+homeToOpenhabItem Tanya = "TanyaHome"
+
+homeToRealName :: HomeDweller -> String
+homeToRealName Myself = "Ты"
+homeToRealName Tanya = "Таня"
 
 queryHome :: (FromJSON a, Show a) => String -> IO (Either String (HomeResponse a))
 queryHome item = catch(do
@@ -74,20 +81,25 @@ homeSetPresence itemName False = updateHome itemName "OFF"
 homeDetectPresence :: String -> Bool -> IO (Either String ())
 homeDetectPresence deviceName state =
   case deviceName of
-    "Terminal6s" -> homeSetPresence "SlavaHome" state
+    "Terminal6s" -> homeSetPresence (homeToOpenhabItem Myself) state
+    "Tanya" -> homeSetPresence (homeToOpenhabItem Tanya) state
     _ -> return $ Right ()
 
 homeQueryPresence :: HomeDweller -> IO (Either String Bool)
 homeQueryPresence dweller = do
-  result <- queryHome (toItem dweller)
+  result <- queryHome (homeToOpenhabItem dweller)
   return (result >>= mapState)
-
   where
-    toItem Myself = "SlavaHome"
-
     mapState :: HomeResponse String -> Either String Bool
     mapState resp =
       case state resp of
         "ON" -> Right True
         "OFF" -> Right False
         _ -> Left "Unknown state"
+
+homeQueryPresenceMulti :: [HomeDweller] -> IO (Either String [(HomeDweller, Bool)])
+homeQueryPresenceMulti dwellers = (sequence $ map queryPresence dwellers) >>= \lst -> return $ sequence lst
+  where
+    queryPresence dweller = do
+      response <- homeQueryPresence dweller
+      return $ fmap (\result -> (dweller, result)) response

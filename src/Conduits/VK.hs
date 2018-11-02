@@ -44,7 +44,7 @@ forwardedToEvent text fwds = ForwardedAndText text fwds
 
 
 messageToEventType :: Message -> EventType
-messageToEventType (Message _ _ _ _ text _ (Specific fwd) _ _) = forwardedToEvent text fwd
+messageToEventType (Message _ _ _ _ text _ (Specific (fh:ft)) _ _) = forwardedToEvent text (fh:ft)
 messageToEventType (Message _ _ _ _ _ _ _ (Specific [Attachment _ (DocC document)]) _) =
   case audio_msg (preview document) of
     Default       -> Unknown
