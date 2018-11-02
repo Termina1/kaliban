@@ -37,7 +37,8 @@ data AIAction =
   AIActionUnknown |
   AIActionDoorQuery |
   AIQueryDoorOpenTime |
-  AIQueryWhoIsHome
+  AIQueryWhoIsHome |
+  AIQuerySetPresence
   deriving (Show)
 
 instance FromJSON AIAction where
@@ -46,8 +47,23 @@ instance FromJSON AIAction where
   parseJSON (String "door_query")     = return AIActionDoorQuery
   parseJSON (String "when_door_open") = return AIQueryDoorOpenTime
   parseJSON (String "who_is_home")    = return AIQueryWhoIsHome
+  parseJSON (String "set_presence")   = return AIQuerySetPresence
   parseJSON (String "input.unknown")  = return AIActionUnknown
   parseJSON act                       = return AIActionUnknown
+
+data EntityComeGone = EntityCome | EntityGone
+  deriving (Show, Eq)
+instance FromJSON EntityComeGone where
+  parseJSON (String "come") = return EntityCome
+  parseJSON (String "gone") = return EntityGone
+  parseJSON act = fail "Unknown verb"
+
+data EntityDweller = DwellerSlava | DwellerTanya
+  deriving (Show)
+instance FromJSON EntityDweller where
+  parseJSON (String "Slava") = return DwellerSlava
+  parseJSON (String "Tanya") = return DwellerTanya
+  parseJSON act = fail "Unknown dweller"
 
 data AIIntentParams where
   IntentTaskParams :: {
@@ -58,6 +74,10 @@ data AIIntentParams where
   IntentDoorQuery :: AIIntentParams
   IntentDoorOpenTimeQuery :: AIIntentParams
   IntentWhoIsHome :: AIIntentParams
+  IntentSetPresence :: {
+    verb :: EntityComeGone,
+    dweller :: EntityDweller
+  } -> AIIntentParams
   IntentUnknown :: AIIntentParams
   deriving (Show)
 
@@ -77,6 +97,10 @@ parseIntentParams AIActionTask = withObject "task action" $ \o -> do
 parseIntentParams AIActionDoorQuery = const $ return IntentDoorQuery
 parseIntentParams AIQueryDoorOpenTime = const $ return IntentDoorOpenTimeQuery
 parseIntentParams AIQueryWhoIsHome = const $ return IntentWhoIsHome
+parseIntentParams AIQuerySetPresence = withObject "presence action" $ \o -> do
+  dweller <- o .: "HomeDweller"
+  verb <- o .: "gone_leave"
+  return $ IntentSetPresence verb dweller
 parseIntentParams AIActionUnknown = const $ return IntentUnknown
 parseIntentParams action = \val -> fail $ "Unsupported action: " ++ (show action)
 

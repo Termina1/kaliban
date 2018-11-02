@@ -22,6 +22,10 @@ data BrainCells = BrainCells
 zone :: TimeZone
 zone = TimeZone {timeZoneMinutes = 180, timeZoneSummerOnly = True, timeZoneName = "Moscow"}
 
+aiDwellerToHomeDweller :: EntityDweller -> HomeDweller
+aiDwellerToHomeDweller DwellerSlava = Myself
+aiDwellerToHomeDweller DwellerTanya = Tanya
+
 getTaskTime :: Optional TimeOfDay -> Optional Day -> IO (Optional UTCTime)
 getTaskTime Default Default = return Default
 getTaskTime time day = do
@@ -51,7 +55,13 @@ processCommand cells (AICommand IntentDoorOpenTimeQuery response AIQueryDoorOpen
   case response of
     Left err -> return $ ConduitResponseMessages ("Ошибка: " ++ err)
     Right time -> return $ ConduitResponseMessages ("Дверь открывали: " ++ (show time))
-processCommand cells (AICommand IntentWhoIsHome response _) meta = do
+processCommand cells (AICommand (IntentSetPresence verb dweller) response _) _ = do
+  let state = if verb == EntityCome then True else False
+  homeResponse <- homeDetectPresence (homeDwellerToPhone $ aiDwellerToHomeDweller dweller) state
+  case homeResponse of
+    Left err -> return $ ConduitResponseMessages ("Ошибка: " ++ err)
+    Right () -> return $ ConduitResponseMessages response
+processCommand cells (AICommand IntentWhoIsHome _ _) _ = do
   response <- homeQueryPresenceMulti [Myself, Tanya]
   case response of
     Left err -> return $ ConduitResponseMessages ("Ошибка: " ++ err)

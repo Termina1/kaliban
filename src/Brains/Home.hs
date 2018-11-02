@@ -46,6 +46,10 @@ homeToRealName :: HomeDweller -> String
 homeToRealName Myself = "Ты"
 homeToRealName Tanya = "Таня"
 
+homeDwellerToPhone :: HomeDweller -> String
+homeDwellerToPhone Myself = "Terminal6s"
+homeDwellerToPhone Tanya = "Tanya"
+
 queryHome :: (FromJSON a, Show a) => String -> IO (Either String (HomeResponse a))
 queryHome item = catch(do
   result <- simpleHttp ("http://192.168.255.7:8080/rest/items/" ++ item)
