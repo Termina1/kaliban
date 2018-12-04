@@ -37,11 +37,9 @@ botLoop chan cells = do
 startBot :: LogIO m => [ConduitInstance] -> BrainCells -> m ()
 startBot instances cells = do
   chan <- liftIO newChan
-  withAsync (liftIO $ startServer (server cells)) $ \a1 -> do
-    link a1
-    withAsync (startConduits chan instances) $ \a2 -> do
-      link a2
-      botLoop chan cells
+  withAsync (startConduits chan instances) $ \a2 -> do
+    link a2
+    botLoop chan cells
 
 type Api = SpockM () () () ()
 
