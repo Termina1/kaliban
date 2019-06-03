@@ -107,7 +107,7 @@ image:
       # You need a base image name. Stack layers exes on top of
       # the base image. Prepare your project image in advance by
       # putting all your runtime dependencies in the image.
-      base: "termina1/haskell-ubuntu"
+      base: "kaliban-base:latest"
       # Optionally specify a list of executables. Stack will create
       # a tagged image for each in the list. these images will have
       # their respective "ENTRYPOINT" set.
